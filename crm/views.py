@@ -45,7 +45,6 @@ def project_list(request):
 
 @login_required
 def project_detail(request, id):
-    # Updated to fetch tasks associated with this specific project
     project = get_object_or_404(Project, id=id)
     tasks = Task.objects.filter(project=project)
     return render(request, 'crm/project_detail.html', {
@@ -59,7 +58,13 @@ def project_create(request):
     if request.method == "POST":
         name = request.POST.get('name')
         description = request.POST.get('description')
-        Project.objects.create(name=name, description=description)
+
+        # FIX: Explicitly assign the logged-in user to created_by
+        Project.objects.create(
+            name=name,
+            description=description,
+            created_by=request.user
+        )
         return redirect('project_list')
     return render(request, 'crm/project_form.html')
 
@@ -81,6 +86,7 @@ def task_detail(request, id):
 @login_required
 def task_create(request):
     if request.method == "POST":
+        # Ensure that task creation also captures data correctly
         task = Task.objects.create(
             title=request.POST.get('title'),
             project_id=request.POST.get('project'),
