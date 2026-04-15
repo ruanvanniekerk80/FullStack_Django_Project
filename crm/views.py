@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.urls import reverse_lazy
 from django.views import generic
-from django.http import HttpResponse
+from django.http import HttpResponse  # CRITICAL: Fixes the 500 error
 from .models import Task, Project, TaskLog
 
 # 👤 USER AUTHENTICATION
@@ -60,7 +60,7 @@ def project_create(request):
         name = request.POST.get('name')
         description = request.POST.get('description')
 
-        # ✅ FIX: Assigns the logged-in user to satisfy the ForeignKey requirement
+        # This fixes the IntegrityError by assigning the logged-in user
         Project.objects.create(
             name=name,
             description=description,
@@ -89,7 +89,6 @@ def task_create(request):
     if request.method == "POST":
         assigned_id = request.POST.get('assigned_to')
 
-        # Ensures a user is assigned even if the form is empty
         if assigned_id:
             assigned_user = User.objects.get(id=assigned_id)
         else:
@@ -146,10 +145,6 @@ def delete_task(request, id):
 
 
 def create_admin_emergency(request):
-    """
-    Visit /emergency-setup-admin/ in your browser to 
-    force-create or reset your superuser account.
-    """
     username = 'ruan_admin'
     password = 'ChangeThisPassword123!'
 
