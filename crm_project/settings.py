@@ -1,6 +1,6 @@
 from pathlib import Path
 import os
-import dj_database_url  # Import this to handle the Neon URL
+import dj_database_url  # Essential for Neon URL parsing
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -9,7 +9,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-5xm$$9hvc9avt654q!y@$v37scrk-*)px2hal&p3#3+n2p&kni'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Pro-tip: Set this to False when you're finally done to keep your app secure.
 DEBUG = True
 
 ALLOWED_HOSTS = ['.vercel.app', 'localhost', '127.0.0.1']
@@ -27,7 +26,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serves Admin CSS on Vercel
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -56,13 +55,18 @@ TEMPLATES = [
 WSGI_APPLICATION = 'crm_project.wsgi.application'
 
 # Database Configuration
-# This logic checks if DATABASE_URL exists (Vercel). If not, it uses SQLite (Your Mac).
+# Uses Neon/Postgres if DATABASE_URL is found (Vercel), otherwise SQLite locally (MacBook).
 DATABASES = {
     'default': dj_database_url.config(
         default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
-        conn_max_age=600
+        conn_max_age=600,
+        conn_health_checks=True,
     )
 }
+
+# 🛠️ CRITICAL: Neon (PostgreSQL) requires SSL mode to be enabled for remote connections
+if 'DATABASE_URL' in os.environ:
+    DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -78,9 +82,10 @@ TIME_ZONE = 'Africa/Johannesburg'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # Added for production collection
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # Required for Vercel's collectstatic
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Authentication settings
 LOGIN_URL = 'login'
