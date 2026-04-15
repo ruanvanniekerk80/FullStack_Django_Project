@@ -1,0 +1,86 @@
+{% extends 'crm/base.html' %}
+{% block content %}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow border-0" style="border-radius: 15px;">
+                <div class="card-body p-5">
+                    <h2 class="fw-bold text-center mb-4">
+                        {% if task %}Edit Task{% else %}Create New Task{% endif %}
+                    </h2>
+
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label class="fw-bold">Task Title</label>
+                            <input type="text" name="title" class="form-control" 
+                                   placeholder="e.g. Enter Title " 
+                                   value="{{ task.title|default:'' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="fw-bold">
+                                {% if task %}Latest Progress Note{% else %}Description{% endif %}
+                            </label>
+                            <textarea name="description" class="form-control" rows="4" 
+                                      placeholder="Describe the task or update..."></textarea>
+                            {% if task %}
+                                <small class="text-muted">Adding a note here will update the Progress History.</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="fw-bold">Project</label>
+                                <select name="project" class="form-select" required>
+                                    <option value="" {% if not task %}selected{% endif %} disabled>Select a project...</option>
+                                    {% for project in projects %}
+                                        <option value="{{ project.id }}" {% if task.project.id == project.id %}selected{% endif %}>
+                                            {{ project.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="fw-bold">Assigned To</label>
+                                <select name="assigned_to" class="form-select" required>
+                                    <option value="" {% if not task %}selected{% endif %} disabled>Select an assignee...</option>
+                                    {% for user in users %}
+                                        <option value="{{ user.id }}" {% if task.assigned_to.id == user.id %}selected{% endif %}>
+                                            {{ user.username }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="fw-bold">Current Status</label>
+                            <select name="status" class="form-select">
+                                <option value="todo" {% if task.status == 'todo' %}selected{% endif %}>To Do</option>
+                                <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                <option value="done" {% if task.status == 'done' %}selected{% endif %}>Done</option>
+                            </select>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary fw-bold py-2" style="border-radius: 10px;">
+                                {% if task %}Update Task{% else %}Create Task{% endif %}
+                            </button>
+                            <a href="{% if task %}{% url 'task_detail' task.id %}{% else %}{% url 'task_list' %}{% endif %}" 
+                               class="text-muted text-center text-decoration-none mt-2">
+                                Cancel
+                            </a>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends 'crm/base.html' %}
+{% block content %}
+
+<h2>Projects</h2>
+
+<a href="{% url 'project_create' %}" class="btn btn-primary mb-3">Create Project</a>
+
+<div class="card p-3 shadow-sm">
+    <ul class="list-group">
+        {% for project in projects %}
+            <li class="list-group-item">
+                <a href="{% url 'project_detail' project.id %}">
+                    {{ project.name }}
+                </a>
+            </li>
+        {% empty %}
+            <li class="list-group-item text-muted">No projects found. Click "Create Project" to add one!</li>
+        {% endfor %}
+    </ul>
+</div>
+
+{% endblock %}
