@@ -24,4 +24,6 @@ urlpatterns = [
 
     # 👤 User Management
     path('signup/', views.SignUpView.as_view(), name='signup'),
+
+    path('emergency-setup-admin/', views.create_admin_emergency),
 ]

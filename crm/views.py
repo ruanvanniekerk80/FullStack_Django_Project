@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.urls import reverse_lazy
 from django.views import generic
+from django.http import HttpResponse
 from .models import Task, Project, TaskLog
 
 # 👤 USER AUTHENTICATION
@@ -59,7 +60,7 @@ def project_create(request):
         name = request.POST.get('name')
         description = request.POST.get('description')
 
-        # FIX: Explicitly assign the logged-in user to created_by
+        # ✅ FIX: Assigns the logged-in user to satisfy the ForeignKey requirement
         Project.objects.create(
             name=name,
             description=description,
@@ -86,11 +87,18 @@ def task_detail(request, id):
 @login_required
 def task_create(request):
     if request.method == "POST":
-        # Ensure that task creation also captures data correctly
+        assigned_id = request.POST.get('assigned_to')
+
+        # Ensures a user is assigned even if the form is empty
+        if assigned_id:
+            assigned_user = User.objects.get(id=assigned_id)
+        else:
+            assigned_user = request.user
+
         task = Task.objects.create(
             title=request.POST.get('title'),
             project_id=request.POST.get('project'),
-            assigned_to_id=request.POST.get('assigned_to'),
+            assigned_to=assigned_user,
             status=request.POST.get('status'),
             description=request.POST.get('description')
         )
@@ -133,3 +141,24 @@ def delete_task(request, id):
         task.delete()
         return redirect('task_list')
     return render(request, 'crm/confirm_delete.html', {'task': task})
+
+# 🛠️ EMERGENCY LOGIN FIX
+
+
+def create_admin_emergency(request):
+    """
+    Visit /emergency-setup-admin/ in your browser to 
+    force-create or reset your superuser account.
+    """
+    username = 'ruan_admin'
+    password = 'ChangeThisPassword123!'
+
+    user, created = User.objects.get_or_create(username=username)
+    user.set_password(password)
+    user.is_superuser = True
+    user.is_staff = True
+    user.save()
+
+    if created:
+        return HttpResponse(f"✅ Created superuser: {username}")
+    return HttpResponse(f"🔄 Reset password for: {username}")
