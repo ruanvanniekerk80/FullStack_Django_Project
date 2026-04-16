@@ -19,7 +19,12 @@ class SignUpView(generic.CreateView):
 @login_required
 def dashboard(request):
     projects = Project.objects.all()
-    tasks = Task.objects.all()
+
+    # ✅ Admin sees all, users see only theirs
+    if request.user.is_superuser:
+        tasks = Task.objects.all()
+    else:
+        tasks = Task.objects.filter(assigned_to=request.user)
 
     todo_count = tasks.filter(status__icontains='do').count()
     progress_count = tasks.filter(status__icontains='progress').count()
@@ -44,7 +49,13 @@ def project_list(request):
 @login_required
 def project_detail(request, id):
     project = get_object_or_404(Project, id=id)
-    tasks = Task.objects.filter(project=project)
+
+    # ✅ Filter tasks per user unless admin
+    if request.user.is_superuser:
+        tasks = Task.objects.filter(project=project)
+    else:
+        tasks = Task.objects.filter(project=project, assigned_to=request.user)
+
     return render(request, 'crm/project_detail.html', {
         'project': project,
         'tasks': tasks
@@ -70,14 +81,26 @@ def project_create(request):
 # 📝 TASK VIEWS
 @login_required
 def task_list(request):
-    tasks = Task.objects.all()
+
+    # ✅ Admin vs User filtering
+    if request.user.is_superuser:
+        tasks = Task.objects.all()
+    else:
+        tasks = Task.objects.filter(assigned_to=request.user)
+
     return render(request, 'crm/task_list.html', {'tasks': tasks})
 
 
 @login_required
 def task_detail(request, id):
-    task = get_object_or_404(Task, id=id)
-    logs = task.logs.all()  # 👈 explicitly pass logs
+
+    # ✅ Secure access (NO URL hacking)
+    if request.user.is_superuser:
+        task = get_object_or_404(Task, id=id)
+    else:
+        task = get_object_or_404(Task, id=id, assigned_to=request.user)
+
+    logs = task.logs.all()
 
     return render(request, 'crm/task_detail.html', {
         'task': task,
@@ -105,7 +128,7 @@ def task_create(request):
             description=description
         )
 
-        # ✅ Create initial log entry
+        # ✅ Initial log
         if description:
             TaskLog.objects.create(
                 task=task,
@@ -116,6 +139,7 @@ def task_create(request):
 
     projects = Project.objects.all()
     users = User.objects.all()
+
     return render(request, 'crm/task_form.html', {
         'projects': projects,
         'users': users
@@ -124,7 +148,12 @@ def task_create(request):
 
 @login_required
 def task_update(request, id):
-    task = get_object_or_404(Task, id=id)
+
+    # ✅ Secure edit access
+    if request.user.is_superuser:
+        task = get_object_or_404(Task, id=id)
+    else:
+        task = get_object_or_404(Task, id=id, assigned_to=request.user)
 
     if request.method == "POST":
         task.title = request.POST.get('title')
@@ -135,7 +164,6 @@ def task_update(request, id):
 
         note = request.POST.get('description')
 
-        # ✅ Only create log if user actually typed something
         if note:
             TaskLog.objects.create(
                 task=task,
@@ -156,7 +184,12 @@ def task_update(request, id):
 
 @login_required
 def delete_task(request, id):
-    task = get_object_or_404(Task, id=id)
+
+    # ✅ Secure delete
+    if request.user.is_superuser:
+        task = get_object_or_404(Task, id=id)
+    else:
+        task = get_object_or_404(Task, id=id, assigned_to=request.user)
 
     if request.method == "POST":
         task.delete()
