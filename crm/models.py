@@ -19,7 +19,7 @@ class Task(models.Model):
     ]
 
     title = models.CharField(max_length=200)
-    description = models.TextField()
+    description = models.TextField(blank=True)  # 👈 allow empty safely
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     assigned_to = models.ForeignKey(User, on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
@@ -31,12 +31,15 @@ class Task(models.Model):
 
 class TaskLog(models.Model):
     task = models.ForeignKey(
-        Task, on_delete=models.CASCADE, related_name='logs')
+        Task,
+        on_delete=models.CASCADE,
+        related_name='logs'
+    )
     note = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['-created_at']  # Shows newest updates first
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"Update for {self.task.title} at {self.created_at}"

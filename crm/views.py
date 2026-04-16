@@ -4,20 +4,18 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.urls import reverse_lazy
 from django.views import generic
-from django.http import HttpResponse  # CRITICAL: Fixes the 500 error
+from django.http import HttpResponse
 from .models import Task, Project, TaskLog
 
+
 # 👤 USER AUTHENTICATION
-
-
 class SignUpView(generic.CreateView):
     form_class = UserCreationForm
     success_url = reverse_lazy('login')
     template_name = 'registration/signup.html'
 
+
 # 🏠 MAIN DASHBOARD
-
-
 @login_required
 def dashboard(request):
     projects = Project.objects.all()
@@ -35,9 +33,8 @@ def dashboard(request):
         'done_count': done_count,
     })
 
+
 # 📋 PROJECT VIEWS
-
-
 @login_required
 def project_list(request):
     projects = Project.objects.all()
@@ -60,18 +57,17 @@ def project_create(request):
         name = request.POST.get('name')
         description = request.POST.get('description')
 
-        # This fixes the IntegrityError by assigning the logged-in user
         Project.objects.create(
             name=name,
             description=description,
             created_by=request.user
         )
         return redirect('project_list')
+
     return render(request, 'crm/project_form.html')
 
+
 # 📝 TASK VIEWS
-
-
 @login_required
 def task_list(request):
     tasks = Task.objects.all()
@@ -81,7 +77,12 @@ def task_list(request):
 @login_required
 def task_detail(request, id):
     task = get_object_or_404(Task, id=id)
-    return render(request, 'crm/task_detail.html', {'task': task})
+    logs = task.logs.all()  # 👈 explicitly pass logs
+
+    return render(request, 'crm/task_detail.html', {
+        'task': task,
+        'logs': logs
+    })
 
 
 @login_required
@@ -94,23 +95,37 @@ def task_create(request):
         else:
             assigned_user = request.user
 
+        description = request.POST.get('description')
+
         task = Task.objects.create(
             title=request.POST.get('title'),
             project_id=request.POST.get('project'),
             assigned_to=assigned_user,
             status=request.POST.get('status'),
-            description=request.POST.get('description')
+            description=description
         )
+
+        # ✅ Create initial log entry
+        if description:
+            TaskLog.objects.create(
+                task=task,
+                note=description
+            )
+
         return redirect('task_detail', id=task.id)
 
     projects = Project.objects.all()
     users = User.objects.all()
-    return render(request, 'crm/task_form.html', {'projects': projects, 'users': users})
+    return render(request, 'crm/task_form.html', {
+        'projects': projects,
+        'users': users
+    })
 
 
 @login_required
 def task_update(request, id):
     task = get_object_or_404(Task, id=id)
+
     if request.method == "POST":
         task.title = request.POST.get('title')
         task.project_id = request.POST.get('project')
@@ -119,13 +134,19 @@ def task_update(request, id):
         task.save()
 
         note = request.POST.get('description')
+
+        # ✅ Only create log if user actually typed something
         if note:
-            TaskLog.objects.create(task=task, note=note)
+            TaskLog.objects.create(
+                task=task,
+                note=note
+            )
 
         return redirect('task_detail', id=task.id)
 
     projects = Project.objects.all()
     users = User.objects.all()
+
     return render(request, 'crm/task_form.html', {
         'task': task,
         'projects': projects,
@@ -136,14 +157,15 @@ def task_update(request, id):
 @login_required
 def delete_task(request, id):
     task = get_object_or_404(Task, id=id)
+
     if request.method == "POST":
         task.delete()
         return redirect('task_list')
+
     return render(request, 'crm/confirm_delete.html', {'task': task})
 
+
 # 🛠️ EMERGENCY LOGIN FIX
-
-
 def create_admin_emergency(request):
     username = 'ruan_admin'
     password = 'ChangeThisPassword123!'
